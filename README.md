@@ -92,9 +92,9 @@ The Raspberry Pi sends high-level motion commands while the STM32 handles real-t
 | Motor Drivers | BTS7960 H-Bridge Modules | 2 | Independent DC motor control |
 | Steering Servos | Powerhobby 190MG 35KG HV | 2 | Front/rear steering |
 | Drive Axles | RC Crawler Differential Axles | 2 | Four-wheel drivetrain |
-| LiDAR | 2D LiDAR, model pending | TBD | Obstacle detection |
-| Cameras | RGB Cameras, model pending | TBD | Vision and target detection |
-| IMU | Model pending | Optional | Orientation estimation |
+| LiDAR | SLAMTEC RPLIDAR C1M1 | 1 | Obstacle detection |
+| Cameras | NexiGo N60 1080P | 2 | Vision and target detection. 1 Front 1 Rear |
+| IMU | Adafruit BNO055 | 1 | Orientation estimation, Turning Rate Sense |
 
 ### Drivetrain Configuration
 
