@@ -1,0 +1,49 @@
+SLAM EXPLORER 0.12 - STEERING-FEASIBLE FORWARD/REVERSE PLANNING
+
+Replaced frontier-cluster goal generation with rolling-horizon viewpoint
+planning. It samples 126 steering-feasible forward/reverse arcs, checks body
+clearance along each arc in the observed map, scores information and progress,
+and penalizes revisited locations. Goal yaw follows the arc tangent. Unknown
+cells never authorize driving through the body footprint. A robot already
+inside an inflation margin can plan an escape with the full physical body
+protected while restoring padding over 0.4 m. Nav2 still validates each path.
+
+Smac Hybrid-A* now uses Reeds-Shepp and regulated pure pursuit permits reverse
+paths without rotate-in-place. Active navigation authorizes bounded reverse
+commands; rear coverage, swept obstacle checks and watchdogs still apply.
+Goal tolerance is 0.08 m instead of 0.25 m, and planner tolerance is 0.10 m.
+Failed-viewpoint cooldown is 4-16 s with 0.12 m exclusion, rather than broad
+0.35 m exclusions lasting up to minutes. Normal routes no longer depend on
+finding a frontier cluster or a one-use breadcrumb recovery. Breadcrumb and
+straight recovery remain fallback maneuvers. Reverse budgets reset between
+measured standstill maneuvers, never simply while a reverse is moving.
+
+LIVE PI FINDINGS AND TESTS
+Connected through a dedicated SSH key authorized by the user. Captured actual
+map/scan/odometry/current/encoder telemetry and both cameras. Initial planner
+probes returned valid 5-point and 8-point paths. The first 8-second motor test
+reached a goal but revealed steering correction in the wrong direction.
+Backed up Pi calibration, then set front_sign=-1 and rear_sign=+1. Two 1.1 s
+powered steering checks measured +12.9 deg for positive steering and -10.1 deg
+for negative steering, with healthy telemetry. Other measured calibration
+was preserved; physical steering-angle and speed calibration remain estimated.
+
+A later 12-second test exercised normal planned reverse and forward movement,
+reached successive goals, stayed armed/healthy, and was following a route at
+the scheduled final Stop. Camera snapshots, motor currents, encoder changes
+and controller logs were reviewed. Another test exposed a forward-only stall
+and was used to add first-class reverse routes. These are bounded room tests,
+not proof of indefinite collision-free exploration or complete map coverage.
+The LiDAR scan plane still misses some low obstacles and floor cables.
+
+80 local unit tests and dashboard script checks passed before release. New
+coverage includes actual captured map replay, feasible endpoint headings,
+unknown/occupied rejection, revisitation scoring, reverse out of a front
+dead-end, and stationary-only reset of reverse maneuver budgets.
+
+Current Pi calibration lives in ~/robot_nav_calibration.json; it is preserved
+by installation. Original steering calibration is backed up under
+~/robot_backups/before_steering_signs_*.json. Pre-rewrite code backup is
+~/robot_backups/before_planner_rewrite.tgz. Test captures are under /tmp on Pi
+and the Windows project tmp/motion_test_* folders. Cameras and LiDAR are kept
+separate. Only one navigation stack and one serial owner should run.

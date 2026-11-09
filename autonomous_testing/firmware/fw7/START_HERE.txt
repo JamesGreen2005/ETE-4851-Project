@@ -1,0 +1,23 @@
+FW=7 independent GPIO/configuration diagnostics. This is NOT a confirmed repair.
+Pins unchanged: E1 A=PC10/B=PC11; E2 A=PC8/B=PC9.
+Disconnect motor battery and servo BEC, connect ST-LINK USB to Windows,
+run Upload_Vehicle.ps1 and wait for verification. Reconnect USB to Pi.
+Existing corrected dashboard is compatible. Use prior stall-disabled launch
+for a brief powered test with wheels lifted. No hand rotation required.
+P2/A2/B2/X2 retain their FW=6 meanings.
+G2 records which two-bit input states have been sampled by the 1 ms task:
+bit0=00, bit1=01, bit2=10, bit3=11. G2=8 means only both-high sampled;
+G2=15 means all four sampled. Sampling may miss fast pulses or alias.
+C2 configuration bits: 1=both GPIO inputs,2=EXTI routed port C,
+4=both rising triggers,8=both falling triggers,16=both EXTI masks enabled,
+32=NVIC IRQ enabled,64=global interrupt mask clear. Normal C2=127.
+Capture a raw line after running motor 2. These diagnostics are cumulative;
+releasing the keys before copying does not erase them. Do not rewire again.
+G2 changing with A2/B2 frozen suggests an interrupt/configuration path issue.
+G2=8 with C2=127 indicates no low samples reached those GPIO inputs during
+sampling; it is not definitive proof of a bad sensor (sampling may alias).
+A pin mapping, connection, encoder power or signal-level issue remains possible.
+The firmware was compiled and software checked, not physically validated/flashed.
+Telemetry max254 bytes fits existing256-byte TX buffer. No auto movement.
+Generated C includes telemetry fields; MATLAB formatter alone won't rebuild
+this diagnostic output. Source is for integration into the original project.

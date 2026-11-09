@@ -1,0 +1,38 @@
+SLAM EXPLORER 0.5 - BOUNDED AUTOMATIC REVERSE RECOVERY
+
+Front blockage cancels the active navigation goal. Reverse starts only after
+the action result confirms navigation is no longer commanding the robot.
+The drive's front-obstacle detail stays relevant even when Nav2 sends zero
+velocity, so the cancellation trigger no longer depends on a transient label.
+
+Recovery prefers up to 0.5 m of recent recorded forward path. If no recent
+route exists, it requests a straight backup with a 0.25 m target. The bridge
+still requires rear LiDAR coverage, checks the swept reverse path on each
+command, and enforces sensor freshness, watchdogs and reverse distance/time
+bounds. No reverse command is authorized by the camera image.
+
+One recovery is allowed until the robot makes at least 0.3 m of forward
+progress away from the recovery endpoint. This prevents repeated retreat
+without meaningful forward progress. When no frontier is available, the
+explorer stays active, requests zero motion through the command timeout,
+and periodically retries planning instead of disarming just for no frontier.
+Blocked rear recovery, stale sensors, explicit Stop, and faults still stop.
+This is deterministic navigation/recovery, not visual intelligence or learning.
+
+49 Python tests and the dashboard JavaScript harness passed locally.
+New checks cover short-backup geometry, cancellation-before-reverse, stale
+odometry refusal, one-use recovery budget, and reset only after forward motion.
+Existing rear coverage, obstacle braking and reverse bounds tests still pass.
+The update has not been deployed or physically tested by this chat.
+
+Stop Terminal 3 with Ctrl+C. Keep the separate camera and LiDAR drivers running.
+Run Update-Cameras.ps1 on Windows to upload and build this version. Then in
+Pi Terminal 3:
+
+source /opt/ros/lyrical/setup.bash
+source ~/camera_ws/install/setup.bash
+source ~/nav_ws/install/setup.bash
+ros2 launch robot_explorer explore.launch.py allow_motion:=true start_front_camera:=false start_rear_camera:=false
+
+Use the NEW SLAM-EXPLORER-0.5 token link and explicitly click Start exploration.
+The installer and launch do not start movement automatically.

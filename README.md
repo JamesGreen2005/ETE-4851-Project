@@ -623,3 +623,7 @@ Manufacturer product specifications covering operating voltage, torque, speed, d
 Develop a reliable, maneuverable, four-wheel-drive autonomous ground vehicle that progresses from safe manual teleoperation to fully autonomous navigation and competition-specific task execution.
 
 The immediate development priority is STM32 actuator control, encoder feedback, Raspberry Pi communication, and safe vehicle teleoperation.
+
+## Autonomous testing implementation
+
+The [autonomous testing files](autonomous_testing/README.md) include the tested dashboard source, FW7 reference, release archives, startup commands, file guide and validation record. See that record for the implementation scope and unresolved navigation limits.

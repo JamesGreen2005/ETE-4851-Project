@@ -1,0 +1,139 @@
+PI STATIONARY VALIDATION - 2026-11-06
+Installed on Pi 10.110.135.247. All 90 unit tests passed there.
+Fixed real ROS constructor issue. A second motion-disabled launch reached
+Managed nodes are active. Probe received 274 LiDAR odometry, 269 EKF,
+57 fusion-status and 54 drive-status messages. Both cameras correctly report
+odometry disabled pending calibration. Drive stayed disarmed at zero duty.
+No powered motion or grass validation was performed. Earlier not-deployed
+statements below describe the original Windows build, before this Pi check.
+
+0.13.1 PI STARTUP FIX
+Renamed observer publisher storage to avoid a read-only rclpy Node property.
+The first real Pi launch exposed this issue; unit tests used ROS stand-ins.
+
+SLAM EXPLORER 0.13 - AUTONOMY AND FUSION REWRITE
+Built 2026-11-06. Software-tested release; NOT validated on this Pi or on grass.
+
+CHANGES
+- Three-stage steering-lattice viewpoint search with forward/reverse segments,
+  one direction change, heading diversity, and revisitation penalties.
+- Collision checks cover every grid cell intersecting the conservative body
+  disk along each arc. Unknown cells never authorize body movement.
+- Information gain uses rays stopped by occupied cells, rather than counting
+  unknown cells behind obstacles. Nav2 Reeds-Shepp still plans/validates the
+  actual route to each selected viewpoint; candidate segments are proposals.
+- Visited odometry points are transformed into the current map frame before
+  scoring, including after map-to-odom corrections.
+- Existing robot_localization EXTENDED KALMAN FILTER now accepts independent
+  LiDAR and optional camera body-frame velocity observations in addition to
+  IMU heading and encoder longitudinal speed / lateral constraint.
+- Scan-to-scan trimmed ICP uses calibrated LiDAR mounting. Frame age, overlap,
+  residual, geometry, interval and motion outlier checks reject bad estimates.
+  No SLAM map pose is fed back into the odom EKF; SLAM owns map->odom and EKF
+  owns odom->base_link. The scan prior and map still share LiDAR information;
+  they are not statistically independent, and covariance floors are provisional.
+- Camera odometry uses tracked ground features, forward/backward optical-flow
+  checks, metric ground homography, RANSAC consensus and rigid-motion checks.
+  Each camera requires measured intrinsics and a verified ground calibration.
+  BOTH camera odometry sources are DISABLED by default, as requested. Video
+  remains available. No depth, object recognition or obstacle-free terrain
+  certification is inferred from video. Slopes, suspension changes, moving
+  grass and nonplanar surfaces can invalidate this planar model.
+- Both motor currents affect ENCODER MEASUREMENT CONFIDENCE, not position.
+  Missing/offline readings reduce confidence. Imbalanced current and load above
+  an optional measured reference increase wheel covariance. Current does not
+  prove slip or establish torque without a motor/load model.
+- A second encoder can participate only with its own measured scale and sign.
+  Encoder disagreement increases wheel covariance. Existing primary-encoder
+  stale/no-motion stops remain. No second scale or direction is guessed.
+- MAXIMUM MOTOR DUTY IS NOW 100%, configurable by max_duty_pct. Motor protocol
+  and the existing Vehicle_Drive firmware source already support +/-100%.
+  No new firmware is included or flashed by this package.
+- Navigation still requests measured_speed_mps. 100% DUTY IS A CEILING, NOT A
+  FORCED CONSTANT OUTPUT OR A CLAIM THAT THE VEHICLE SPEED HAS DOUBLED. At the
+  existing speed target, the controller may use less than 100% duty. To request
+  a faster cruising speed, measure steady speed and stopping distance at that
+  operating point, then update measured_speed_mps, measured_duty_pct and
+  stopping_distance_m together. Do not relabel old 50% measurements as 100%.
+- Swept braking reach scales with the largest requested/encoder/EKF speed and
+  quadratically scales the measured stopping-distance baseline. This is a
+  conservative software model, not a measured grass braking profile.
+- Dashboard identifies SLAM-EXPLORER-0.13 and displays fusion health, source
+  rejection reasons, motor ceiling and wheel confidence in its status panel.
+
+INSTALL FROM WINDOWS
+1. Stop the old navigation launch with Ctrl+C. Keep existing camera/LiDAR
+   drivers running. Only one process may own /dev/ttyACM0 or dashboard port 8005.
+2. Run:
+   powershell -ExecutionPolicy Bypass -File "C:\Users\jpgre\OneDrive\Documents\ChatGPT\ETE 4851 Project\outputs\slam_explorer\Update-Autonomy.ps1"
+   If needed append -PiHost ACTUAL_PI_IP. Default 192.168.1.160 did not respond
+   during this build. Installation preserves ~/robot_nav_calibration.json.
+3. In a Windows terminal establish a tunnel:
+   ssh -L 8005:127.0.0.1:8005 swerve@ACTUAL_PI_IP
+4. In that Pi session:
+   source /opt/ros/lyrical/setup.bash
+   source ~/camera_ws/install/setup.bash
+   source ~/nav_ws/install/setup.bash
+   python3 ~/slam_explorer_autonomy_update/preflight.py --calibration ~/robot_nav_calibration.json
+   ros2 launch robot_explorer explore.launch.py calibration:=$HOME/robot_nav_calibration.json allow_motion:=false
+5. Open the full NEW token link printed beside SLAM-EXPLORER-0.13. Confirm
+   sensors, LiDAR motion-observer status, cameras and filtered odometry while
+   stationary. Camera odometry should explicitly say disabled.
+6. Stop the stationary launch with Ctrl+C. After checks, run:
+   ros2 launch robot_explorer explore.launch.py calibration:=$HOME/robot_nav_calibration.json allow_motion:=true
+   Open the new token link and click Start exploration. Launch itself does not
+   arm/move the robot. Keep the dashboard connected and STOP available.
+
+LIDAR (SEPARATE PI TERMINAL, IF NOT ALREADY RUNNING)
+source /opt/ros/lyrical/setup.bash
+source ~/lidar_ws/install/setup.bash
+ros2 launch sllidar_ros2 sllidar_c1_launch.py serial_port:=/dev/ttyUSB0 serial_baudrate:=460800
+
+BOTH CAMERAS (SEPARATE PI TERMINAL, IF NOT ALREADY RUNNING)
+source /opt/ros/lyrical/setup.bash
+source ~/camera_ws/install/setup.bash
+source ~/nav_ws/install/setup.bash
+ros2 launch robot_explorer cameras.launch.py start_front_camera:=true
+
+OPTIONAL CALIBRATION KEYS IN ~/robot_nav_calibration.json
+max_duty_pct: defaults to 100 if absent; valid 1..100.
+load_reference_current_a: null/absent until a normal-load current is measured.
+secondary_encoder: null/absent until separately calibrated. For example the
+schema is {"index":2,"sign":MEASURED_SIGN,"counts_per_meter":MEASURED_SCALE}.
+It must select the other encoder, never the same as encoder_index.
+front_odometry_calibration / rear_odometry_calibration: null/absent until ready;
+otherwise each is an absolute Pi path to a JSON camera calibration file.
+Required camera file fields:
+  verified: true ONLY after measured calibration and a scale/direction test
+  width, height: native camera image dimensions
+  camera_matrix: measured 3x3 intrinsics K
+  distortion: measured OpenCV distortion coefficients
+  ground_homography: measured 3x3 map from UNDISTORTED pixels (P=K) to ground
+                     coordinates in base_link, metres, x forward and y left
+  ground_roi: polygon [[pixel_x,pixel_y],...] in original image pixels selecting
+              only visible ground, excluding the robot, sky and non-ground objects
+Keep camera USB ports, image sizes and mounts fixed. Validate metric movement
+in each direction before enabling camera observations. The two cameras are
+not assumed to be stereo. This release does not perform camera calibration.
+
+VALIDATION / LIMITS
+90 local Python tests passed, including captured stationary-map replay,
+compound-route headings, unknown/occupied rejection, forward/reverse stops,
+100% duty bounds, synthetic ICP scale/sign, degenerate-wall rejection,
+calibrated synthetic camera flow and wheel-current/second-encoder weighting.
+Dashboard JavaScript checks and Python/launch syntax checks passed.
+Tests use ROS stand-ins and synthetic sensor motion. No ROS 2 launch, Pi CPU
+load, EKF tuning, scan-motion accuracy or physical grass test was performed.
+The Pi SSH connection timed out. This archive has NOT been deployed today.
+ICP can reject open/feature-poor scenes or converge incorrectly in repeating
+geometry. Published uncertainty floors are initial tuning, not measured sensor
+accuracy. IMU currently publishes heading, not raw gyro/accelerometer channels;
+those channels cannot be fused until the firmware provides actual samples.
+Outdoor grass can produce wheel slip, weak LiDAR geometry and invalid camera
+plane assumptions. LiDAR does not reliably see low obstacles or drop-offs.
+
+PRIMARY IMPLEMENTATION REFERENCES
+https://github.com/cra-ros-pkg/robot_localization/blob/rolling-devel/doc/configuring_robot_localization.rst
+https://github.com/cra-ros-pkg/robot_localization/blob/rolling-devel/doc/state_estimation_nodes.rst
+https://docs.opencv.org/4.x/dc/d6b/group__video__track.html
+https://docs.opencv.org/4.x/d9/d0c/group__calib3d.html

@@ -1,0 +1,12 @@
+SLAM EXPLORER 0.14 - PI VALIDATION 2026-11-06
+Pi: 10.110.135.247
+Installed and built successfully. All 96 Python tests passed on Pi.
+Local dashboard JavaScript reset/authentication/start-gating tests passed.
+Real motion-disabled ROS launch reached Managed nodes are active.
+Authenticated dashboard HTTP test completed TWO Stop -> Reset cycles using
+one unchanged dashboard token and page. Each cycle reached Reset complete / Ready.
+Unauthenticated POST /reset returned 403. Updated page contains Reset navigation.
+72 drive-status observations remained disarmed with zero applied motor duty.
+No Start command or powered navigation was exercised in the live test.
+The test launch is stopped afterward; camera/LiDAR drivers are retained.
+Reset does not bypass sensor faults or repair a dead external process.

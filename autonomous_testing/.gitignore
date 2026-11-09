@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.log
+*.slxc
+build/
+install/
+log/
+.env
+*.pem
+*.key
+!firmware/fw7/Vehicle_Drive.bin

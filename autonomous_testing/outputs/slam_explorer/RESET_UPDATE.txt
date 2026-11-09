@@ -1,0 +1,48 @@
+SLAM EXPLORER 0.14 - DASHBOARD RESET
+
+Click Reset navigation after a failed attempt. Wait for "Reset complete.
+Ready: press Start exploration", then click Start exploration on the SAME page.
+Reset never starts movement automatically. The current SLAM map is preserved.
+
+Reset stops/disarms the drive, cancels navigation and planner work, clears
+stuck pending/arming flags, failure cooldowns, visits and reverse recovery
+history. Delayed replies from old attempts are cancelled and cannot change
+new attempt state. Start waits until old actions finish cancellation.
+
+Readiness requires fresh confirmed DISARMED telemetry, zero applied duty,
+vehicle speed below 0.02 m/s, sensor health, fresh map and available navigation
+services. Real sensor faults or an unresponsive navigation service remain
+visible; Reset does not bypass them. This is a navigation-session reset, not
+a Pi reboot, SLAM map reset or hardware fault override.
+
+Root cause fixed: halt() did not clear pending. Old action callbacks also
+cleared pending/plan handles before checking session generation, allowing
+late results to overwrite a later attempt. Action response/result work is
+now tracked through cancellation and generation checks precede mutations.
+Exceptions from action requests/results now halt cleanly.
+
+96 Python tests and dashboard JavaScript checks passed locally. Coverage
+includes pending planner stop, late acceptance/cancellation, stale navigation
+and planner results, repeated explicit reset/start, fresh stop confirmation,
+sensor-fault gating, reset button/authentication and Start button gating.
+Pi validation is recorded separately after deployment. No powered testing
+is performed by the installation/reset check.
+
+INSTALL
+Stop the old navigation launch once, leave camera/LiDAR drivers running.
+Windows PowerShell:
+powershell -ExecutionPolicy Bypass -File "C:\Users\jpgre\OneDrive\Documents\ChatGPT\ETE 4851 Project\outputs\slam_explorer\Update-Autonomy.ps1"
+Default Pi address is 10.110.135.247; override with -PiHost if needed.
+
+Windows tunnel:
+ssh -L 8005:127.0.0.1:8005 swerve@10.110.135.247
+
+Pi launch:
+source /opt/ros/lyrical/setup.bash
+source ~/camera_ws/install/setup.bash
+source ~/nav_ws/install/setup.bash
+ros2 launch robot_explorer explore.launch.py calibration:=$HOME/robot_nav_calibration.json allow_motion:=true
+
+Open the new SLAM-EXPLORER-0.14 token link once after updating.
+After subsequent failures, use Reset navigation -> Ready -> Start exploration;
+no page reopening or terminal restart is needed for an ordinary failed attempt.

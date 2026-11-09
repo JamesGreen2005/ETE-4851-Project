@@ -1,0 +1,18 @@
+0.17 FOOTPRINT / OBSERVED MAP FIX
+Current chassis-intersecting grid cells can be marked known only if previously
+unknown; occupied observations are never erased. This is grid-resolution
+footprint clearing, with up to one boundary cell of discretization.
+The route sampler uses the oriented square chassis, not its circumscribed disk.
+Unknown padding alone is not an occupied obstacle; physical entry into unknown
+remains blocked. Occupied cells still receive the configured clearance margin.
+Latest finite, timestamped LiDAR rays refresh unknown cells on /navigation/map.
+Rays stop at known occupied cells; endpoints are occupied. Missing/infinite
+rays do not clear space. Raw SLAM /map is retained. Nav2, explorer and dashboard
+use the same navigation/map overlay, avoiding differing footprint evidence.
+No unobserved corridor is authorized. Rear threshold remains user-selected 1/20.
+Nav2 footprint padding is zero to match the physical chassis polygon; planner
+occupied-obstacle margin, live collision checks and watchdogs remain active.
+109 local tests and dashboard JavaScript checks passed before Pi deployment.
+Captured stationary map replay no longer rejects the current footprint;
+actual Nav2 path feasibility is checked separately without arming motors.
+Source references: https://docs.nav2.org/rolling/configuration_and_development/configuration_guide/core_servers/costmap_2d/costmap_plugins/obstacle/

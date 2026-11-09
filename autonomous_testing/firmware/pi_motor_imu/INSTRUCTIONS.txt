@@ -1,0 +1,100 @@
+PI MOTOR CONTROL + LIVE BNO055 ORIENTATION
+
+This model replaces automatic startup with explicit Pi commands. It starts
+with both driver enables LOW and PWM at zero. Existing motor and IMU pins
+are unchanged. Forward-only PWM duty is limited to 0..50%, with a 50%/second
+slew limit. This is PWM power control, not measured RPM control.
+
+FIRST UPLOAD (laptop)
+Keep motor power OFF until the new firmware is uploaded. The older
+Motor_IMU_Test firmware automatically drives at 50% after boot.
+Open open_pi_motor_imu.m in MATLAB and click Run. In Motor_Pi_IMU choose
+Hardware > Run on board > Deploy > Build, Deploy & Start.
+Only upload Motor_Pi_IMU when intending to use the Pi command interface.
+Flashing/resetting can require IMU recalibration; calibration is not saved.
+
+ON THE PI
+From Windows PowerShell, copy the controller to the user's confirmed Pi:
+
+scp "C:\Users\jpgre\OneDrive\Documents\ChatGPT\ETE 4851 Project\outputs\pi_motor_imu\pi_motor_control.py" swerve@10.110.130.1:~/
+
+Enter the Pi account password in your terminal if prompted. The copy command
+does not start the controller or move the motor.
+Exit miniterm using Ctrl+] so it does not compete for the serial port.
+Connect the Nucleo ST-LINK USB port to the Pi. Run:
+
+python3 ~/pi_motor_control.py --port /dev/ttyACM0
+
+pyserial is already present if serial.tools.miniterm works. If needed:
+sudo apt install python3-serial
+
+Wait for DISARMED. For the first test leave motor power OFF and type:
+status
+arm
+
+Wait for ARMED at zero duty. It must not spin merely because it is armed.
+With the wheels raised, turn on motor power, then type:
+speed 25
+
+If 25% is insufficient to start the unloaded motor, the supported maximum is:
+speed 50
+
+To stop immediately:
+stop
+
+To view current angles/motor state:
+status
+
+To print IMU/motor status once per second:
+imu on
+imu off
+
+To stop and exit:
+quit
+
+Ctrl+C also attempts to send stop before exiting. Keep the physical
+motor-power disconnect accessible regardless of software state.
+
+TIMEOUT / RESET BEHAVIOR
+The Pi sends CRC-checked command frames about every 100 ms. The MCU disables
+the motor if no accepted command arrives for 250 ms, provided its control
+task is running normally. This is a software command watchdog, not an
+independent hardware watchdog or hardware E-stop. A stalled MCU requires
+separate hardware protection before real vehicle operation.
+The timeout also needs the Nucleo to stay powered. If USB disconnection cuts
+Nucleo power, software cannot force the pins low. Keep a 10 kOhm pull-down
+from each driver enable input (R_EN and L_EN) to common GND so they do not
+float during reset or power loss. Test the software stop using stop/Ctrl+C
+with USB power retained; use the motor-power disconnect for a physical stop.
+On timeout, reset, malformed commands, replay, or session errors, enables
+drop LOW and duty becomes zero. A fresh disarmed command and an explicit
+zero-duty arm are needed before motion can resume. The Pi program never
+automatically re-arms after a reset, loss of telemetry, or reconnect.
+Do not use this bench model for autonomous driving yet.
+
+TELEMETRY
+The original H/R/P/CAL/VALID/ERR fields are preserved. Added fields:
+ARM=0 or 1: actual MCU arm state.
+DUTY=00.0..50.0: actual commanded PWM after slew limiting, not measured speed.
+CMDERR=000: no command error; 002: command timeout; 003: CRC error;
+004: bad version/op/range/TTL; 005: replay/out-of-order sequence;
+006: session mismatch; 007: arm/run rejected while disarmed;
+008: UART receive error.
+ERR remains the independent BNO055 communication error field.
+
+BUILD AND VERIFICATION
+build_pi_motor_imu.m clones Motor_IMU_Test, removes both motor Step sources,
+adds USART3 command reception and the MCU command watchdog, and compiles.
+It NEVER uploads firmware. open_pi_motor_imu.m opens normal deployment UI.
+The original motor/IMU models and original IOC files are not edited.
+test_pi_motor.m tests firmware behavior, including timeout and fault stops.
+test_pi_motor_control.py tests the host handshake and packet generation.
+
+COMMAND FRAME (for future integration; not the ROS MCU protocol)
+18 bytes, little endian: magic C3 3C, version 1, operation u8, session u32,
+sequence u32, duty in tenths-of-percent u16, TTL milliseconds u16,
+CRC16-CCITT-FALSE u16 over the first 16 bytes.
+Operations: 0=disarm zero, 1=arm zero, 2=run duty. A new session can only be
+adopted from operation 0 with duty zero. Session is nonzero. Sequence numbers
+strictly increase. Firmware accepts TTL 50..250 ms and duty 0..500.
+The CLI fixes TTL at 250 ms and uses a new random session on every start.

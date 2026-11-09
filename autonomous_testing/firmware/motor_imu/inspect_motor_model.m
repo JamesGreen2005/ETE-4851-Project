@@ -1,0 +1,10 @@
+taskDir = fileparts(mfilename('fullpath'));
+addpath(taskDir);
+load_system('C:/Users/jpgre/OneDrive/Desktop/Books/ETE 3501/Motor_Test.slx');
+disp(find_system('Motor_Test','SearchDepth',1,'Type','Block'));
+taskData = get_param('Motor_Test','CoderTargetData');
+disp(taskData.STM32CubeMX);
+disp(taskData.Runtime);
+load_system('stm32f7xxblockslib');
+disp(find_system('stm32f7xxblockslib','LookUnderMasks','all','RegExp','on','Name','UART.*Write|Digital Port Write'));
+close_system('Motor_Test',0);

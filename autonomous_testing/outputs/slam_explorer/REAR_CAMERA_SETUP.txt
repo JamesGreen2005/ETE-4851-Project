@@ -1,0 +1,96 @@
+FRONT + REAR USB CAMERA UPDATE - SLAM EXPLORER 0.4
+
+The user confirmed from live dashboard video that the initial assignments
+were reversed. Corrected mapping: physical front /dev/video2; rear /dev/video0.
+The front image is very dark; exposure diagnosis remains pending.
+
+Front: /dev/v4l/by-path/platform-xhci-hcd.0-usb-0:2:1.0-video-index0
+       /camera/image_raw, camera_optical_frame
+Rear:  /dev/v4l/by-path/platform-xhci-hcd.1-usb-0:2:1.0-video-index0
+       /camera/rear/image_raw, rear_camera_optical_frame
+
+Keep the cameras in the same USB ports. These paths identify ports, not camera
+serial numbers. Moving/swapping cables requires changing the device arguments.
+Index1 devices /dev/video1 and /dev/video3 are not selected for capture.
+Both feeds use 640x480, YUYV, 15 fps. The user-supplied /dev/video2 format list
+explicitly supports that mode. Front retains its previous mode. The dashboard
+encodes at most about 3 frames/s per feed, with independent requests and buffers.
+
+The existing front URL /camera.jpg is retained; rear uses /camera/rear.jpg.
+Both require the same dashboard token. Missing/stale video returns HTTP 503.
+The dashboard clears failed/frozen views and offers an optional rear mirror.
+ROS image timestamps and arrival time are both checked. No image is a clearance
+measurement. No camera object recognition, depth, visual SLAM, or camera mount
+TF is invented. Existing LiDAR/retrace/motor gates remain in place.
+
+1. INSTALL FROM WINDOWS POWERSHELL
+Stop the old navigation/dashboard launch with Ctrl+C in its Pi terminal.
+Then run this on Windows (the upload will ask for the Pi password):
+
+powershell -ExecutionPolicy Bypass -File "C:\Users\jpgre\OneDrive\Documents\ChatGPT\ETE 4851 Project\outputs\slam_explorer\Update-Cameras.ps1"
+
+The last responding SSH address was 192.168.1.160. If it changes, append
+-PiHost ACTUAL_PI_ADDRESS. The installer may ask for the Pi sudo password.
+It installs into ~/nav_ws and preserves ~/robot_nav_calibration.json.
+Source backups are saved outside the build workspace in ~/robot_backups/nav_ws.
+Build discovery is restricted to src/robot_explorer so older backup folders
+under ~/nav_ws cannot cause duplicate-package errors.
+It sources ~/camera_ws/install/setup.bash and reuses the existing usb_cam
+driver. It only tries the optional ros-lyrical-usb-cam apt package if no
+working driver is found and that package is actually available.
+It starts no drivers and no motion. No Nucleo firmware flash is needed.
+The package retains the latest local retrace code; its physical test remains
+outstanding. The archive also contains the older PI_VALIDATION.txt history;
+those earlier Pi results do not validate this camera update.
+
+2. PREVIEW BOTH CAMERAS WITHOUT ACCESSING THE MOTOR BOARD
+Stop existing USB camera driver terminals first if you are starting both.
+In a Pi terminal:
+
+source /opt/ros/lyrical/setup.bash
+if [ -f ~/camera_ws/install/setup.bash ]; then source ~/camera_ws/install/setup.bash; fi
+source ~/nav_ws/install/setup.bash
+ros2 launch robot_explorer cameras.launch.py start_front_camera:=true
+
+This launch starts only cameras. Rear is enabled by default in cameras.launch.py.
+If the existing front driver is already running, omit start_front_camera:=true.
+It publishes the existing /camera/image_raw topic and the new rear topic.
+
+In another Pi terminal (or existing SSH session), run:
+
+source /opt/ros/lyrical/setup.bash
+source ~/nav_ws/install/setup.bash
+ros2 run robot_explorer exploration_dashboard
+
+This standalone dashboard opens no serial port. Use its printed token link.
+From Windows, forward port 8005 with the following in a separate terminal:
+
+ssh -L 8005:127.0.0.1:8005 swerve@192.168.1.160
+
+Then open the full http://127.0.0.1:8005/#token=... link printed by the Pi.
+Cover the rear lens and confirm only Rear camera goes dark. Unplug it and
+confirm Rear becomes unavailable while Front remains live. Reconnect it and
+check recovery. Use STOP/Ctrl+C before switching launch modes.
+
+3. USE THE CAMERAS WITH THE SLAM STACK
+Stop the standalone preview/dashboard above. Keep the existing LiDAR driver.
+In the Pi terminal, source the environments as above, then run:
+
+ros2 launch robot_explorer explore.launch.py allow_motion:=false start_front_camera:=true start_rear_camera:=true
+
+Both camera start flags default to false in explore.launch.py so already-running
+drivers can be reused. If front already runs, omit start_front_camera:=true.
+If both drivers already run, omit both flags. Never run two camera drivers on
+the same device or two dashboards on port 8005. Only the navigation bridge owns
+the MCU serial port; stop old autonomy/sensor_hub serial owners before launch.
+This command is a stationary check. The existing calibrated allow_motion:=true
+workflow still requires the operator's explicit Start button for movement.
+
+To override either USB-port assignment, pass front_camera_device:=/dev/... or
+rear_camera_device:=/dev/... to either camera or exploration launch. Other
+arguments: front/rear_camera_width, front/rear_camera_height,
+front/rear_camera_fps, front/rear_camera_pixel_format.
+If a camera driver already publishes elsewhere, the standalone dashboard accepts
+-p front_camera_topic:=/topic or -p rear_camera_topic:=/topic after --ros-args.
+
+Driver reference: https://github.com/ros-drivers/usb_cam

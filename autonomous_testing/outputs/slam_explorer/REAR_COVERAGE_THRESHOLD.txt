@@ -1,0 +1,25 @@
+SLAM EXPLORER 0.7 - USER-REQUESTED 50% REAR COVERAGE THRESHOLD
+
+Reverse coverage is sufficient when known sectors * 2 >= required sectors.
+Exactly half valid sectors passes; more than half missing fails. For example,
+19/38 and 36/38 pass; 18/38 fails. This applies to the selected straight or
+turning coverage region. Complete still means every required sector has a
+valid reading. Sufficient is the separate decision used to permit reverse.
+Minimum_fraction, known_bins, required_bins, and missing_degrees are exposed
+in dashboard drive.rear_coverage. Individual invalid rays do not count as
+missing sectors when another valid reading covers the same sector.
+
+Missing sectors remain unknown and can hide obstacles. This user-selected
+threshold reduces coverage protection; it does not establish free space.
+All detected obstacles still enter swept-path braking. Sensor freshness,
+operator heartbeat, authorization, encoder checks, and distance/time limits
+remain active. Camera images do not authorize clearance.
+
+54 local Python tests passed, including exactly-half and just-below-half
+boundary checks for straight/turning and both LiDAR mounting yaw orientations.
+A detected rear obstacle still stops motor commands with sufficient coverage.
+No Pi deployment or physical test was performed by this chat.
+
+Stop Pi Terminal 3, run Update-Cameras.ps1 on Windows, then restart Terminal 3
+with the existing source commands and explore.launch.py invocation. Keep the
+separate camera and LiDAR processes running. Use the new 0.7 dashboard token.

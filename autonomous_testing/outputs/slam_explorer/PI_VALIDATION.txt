@@ -1,0 +1,36 @@
+SLAM-EXPLORER-0.3 LIVE PI DIAGNOSIS
+
+Authenticated to the user's Pi and inspected the actual ROS logs.
+The prior run accepted a path, then controller collision checks and progress
+failure stopped tracking. Subsequent forward-only Dubins planning failed for
+selected goals; there were repeated retry cooldowns. This is not proof every
+reported obstacle was false or that reversing is physically safe.
+
+Current stationary snapshot: closest observed forward corridor returns about
+2.8 m. EKF/map pose available. Motion-disabled Nav2 compute-path probes returned
+five valid paths. No physical drive movement was commanded during diagnosis.
+
+Updated exploration prioritizes heading-aligned goals and checks each goal
+with ComputePathToPose before handing it to NavigateToPose. Existing path
+commitment remains; goals are not swapped during active path tracking.
+Failed-target suppression radius reduced from .6 to .35 m so a failure does
+not unnecessarily suppress multiple distinct nearby candidates.
+
+Bridge obstacle reports now identify the LiDAR point and checked trajectory.
+Idle state no longer retains an old obstacle-stop message after commands cease.
+Dashboard exposes requested speed and applied motor duties, with raw board
+telemetry collapsed. RPP configuration uses current max_linear_vel parameter.
+Shutdown handling avoids calling the motor service after ROS context closes.
+
+30 local unit tests passed and the same 30 tests passed on Pi Python 3.14.
+Actual rclpy Explorer constructor succeeded. The actual asynchronous frontier
+planner-probe method passed against the running Nav2 compute-path server.
+ROS controller and BT navigator lifecycle states verified active.
+
+Original Pi source backed up at /tmp/codex_robot_explorer_before_03.
+Existing user calibration preserved, including both motor signs=-1 and the
+explicit steering_is_estimated=true marker. Steering remains estimated at15deg.
+No automatic exploration or physical path-tracking/braking test performed.
+The final live-capable launch starts disarmed; operator must explicitly start.
+The 3-second operator heartbeat lease, short motor-command watchdogs, selected
+encoder no-motion check, sensor health checks and obstacle checks remain.

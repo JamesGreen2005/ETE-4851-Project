@@ -1,0 +1,25 @@
+SLAM EXPLORER 0.4 CAMERA UPDATE - LOCAL VALIDATION
+
+44 Python tests passed, including the existing drive, encoder, heartbeat,
+planning, and retrace regressions. New coverage checks separate front/rear
+buffers, delayed/future/repeated ROS timestamps, source-age expiration,
+rear reconnection, authenticated HTTP image endpoints, stale HTTP 503,
+heartbeat availability with missing rear video, and launch device separation.
+
+The actual dashboard JavaScript passed the Node test harness for independent
+feeds, rear failure/recovery, mirror control, one request per camera, stale
+view clearing, heartbeat during blocked rear requests, hidden-tab clearing,
+and image decode failure. This harness is not an actual browser/hardware test.
+
+Python source compilation passed. The Windows installer script parsed without
+errors. Package manifests and archive contents/checksums were verified locally.
+Installer correction: Bash syntax and a full local installer dry run passed
+with system/ROS commands mocked. Verified backup outside the workspace, scoped
+package discovery despite a historical backup, source copy, and preservation
+of existing calibration. This does not establish an actual Pi build result.
+
+The Pi responded at its prior SSH address, but saved authentication was rejected.
+This release was not uploaded, built in ROS, or run on the Pi by this chat.
+Actual camera exposure, orientation, driver compatibility, USB bandwidth,
+CPU load, and display latency are still unverified. No robot motion was started.
+No physical SLAM/retrace validation is claimed by these software test results.

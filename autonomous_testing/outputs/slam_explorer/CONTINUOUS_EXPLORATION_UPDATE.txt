@@ -1,0 +1,36 @@
+SLAM EXPLORER 0.11 - FORWARD PLANNING AFTER BLOCKED REVERSE
+
+The supplied screenshot shows reverse recovery disarming on a measured rear
+obstacle. Reverse blocked/unavailable and the explorer reverse timeout now
+end the maneuver through finish_recovery rather than halt. The explorer
+publishes zero velocity, withdraws reverse authorization, clears the ended
+reverse route, waits 0.6 s at zero throttle for direction settling, and returns
+to ordinary forward frontier planning without disarming or rearming.
+
+One fresh forward planner probe is allowed after recovery even when all
+frontiers carry old failure cooldowns, because the robot start pose changed.
+The probe still goes through the existing Nav2 kinematic/collision planner.
+A successful path is required before forward navigation is sent. When no
+route exists, exploration remains enabled and retries; it does not command
+blind forward motion. The existing forward-progress recovery budget remains
+so the robot cannot endlessly alternate forward and reverse without progress.
+
+Rear/front obstacle braking remains active. Sensor/drive faults, odometry
+jumps, operator heartbeat loss and Stop still disarm. The independent bridge
+reverse distance/time watchdog remains. This change avoids disarming merely
+because a normal reverse recovery is blocked or reaches its planned limit.
+It does not guarantee uninterrupted movement or remove all fault stops.
+20 rear sectors, the selected 50% coverage rule, steering 1000/1500/2000 us,
+and live motor/encoder/current/sensor data remain unchanged.
+
+74 local Python tests plus the dashboard script checks passed. New tests use
+actual explorer methods to verify rear-obstacle transition, zero command,
+reverse authorization withdrawal, settling delay, forward probe despite old
+cooldowns, waiting with no clear path, sensor-fault stop, and reverse timeout
+return to planning. No live Pi deployment or physical validation by this chat.
+
+Stop Terminal 3 and run Update-Cameras.ps1 on Windows. Leave camera and LiDAR
+terminals running. Source ROS/camera_ws/nav_ws again in Pi Terminal 3 and use
+the existing explore.launch.py command. Open the NEW SLAM-EXPLORER-0.11 token
+link and click Start exploration. A blocked reverse no longer requires you
+to click Start again; it switches back to forward planning automatically.

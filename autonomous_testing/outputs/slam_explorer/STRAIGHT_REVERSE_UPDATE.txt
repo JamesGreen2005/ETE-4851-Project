@@ -1,0 +1,34 @@
+SLAM EXPLORER 0.10 - STRAIGHT REVERSE AFTER ROUTE DEVIATION, LOCKED STEERING
+
+The supplied screenshot shows a measured route error of 0.153 m against the
+0.150 m breadcrumb-following threshold. RouteDeviation now switches the
+explorer from recorded-route tracking to straight reverse from one fixed
+current odometry anchor. It does not disarm solely for breadcrumb deviation.
+The switch first sends zero velocity and centers steering for 0.4 seconds,
+then requests negative speed with zero yaw rate. This fallback targets 1 m.
+The original recovery timer is NOT reset; the independent bridge reverse
+time/distance bounds remain. A greater than 0.35 m odometry jump between
+fresh consecutive updates still stops as a localization discontinuity.
+Rear detected obstacles, insufficient coverage, sensor freshness, heartbeat,
+authorization, encoder faults, and explicit Stop remain enforced.
+
+The runtime pulse profile is locked to min=1000 us, straight=1500 us,
+max=2000 us on both servos (500 us travel). Front/rear direction signs are
+preserved for opposite axle steering. Full left/right therefore send opposite
+endpoint pulses, and zero steering sends 1500/1500. Nonconforming centers or
+travel are rejected by Control.configure. Both launch and bridge use the
+same locked pulse profile for consistency with odometry conversion. The
+calibration file is not overwritten. max_steer_rad remains the physical
+wheel-angle calibration; a pulse width is not a measurement in degrees.
+Dashboard shows pulse limits and requested front/rear pulses.
+
+70 local Python tests passed plus dashboard script and source compilation
+checks. New checks cover the 0.153 m deviation transition without disarm,
+zero-speed centering interval, negative straight command afterwards, original
+timeout preservation, finite straight geometry, exact servo endpoints/neutral,
+and locked configuration. No physical validation or deployment by this chat.
+
+Stop Pi Terminal 3; leave the camera and LiDAR processes running. Run the
+existing Update-Cameras.ps1 on Windows. Source ROS/camera_ws/nav_ws again in
+Terminal 3 and launch the existing explore.launch.py command. Open the NEW
+SLAM-EXPLORER-0.10 token link. Start exploration explicitly enables movement.

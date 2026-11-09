@@ -1,0 +1,74 @@
+MOTOR + BNO055 ORIENTATION TEST
+
+Open open_motor_imu.m in MATLAB and click Run. It opens Motor_IMU_Test.slx
+and selects the normal build-and-deploy action, but does not flash anything.
+Keep motor power OFF for the first upload; its wiring can stay connected.
+The model preserves the existing motor step and enable settings. With motor
+power enabled, the 50% forward command starts two seconds after MCU startup.
+This is a bench test, not a Pi-commanded or closed-loop motor controller.
+
+Click Hardware > Run on board > Deploy > Build, Deploy & Start in the new
+Motor_IMU_Test window. Connect ST-LINK USB to the laptop for programming.
+
+After programming, move the ST-LINK USB cable to the Pi. On the Pi run:
+
+python3 -m serial.tools.miniterm /dev/ttyACM0 115200
+
+If Linux assigned a different device, use the device shown by:
+ls /dev/ttyACM*
+
+Example output, in degrees:
+H=+123.5 R=-012.5 P=+045.3 CAL=3/3/3/3 VALID=1 ERR=000
+
+H = heading, R = roll, P = pitch, in the IMU's default sensor axes.
+CAL order = system / gyroscope / accelerometer / magnetometer.
+Each calibration score ranges from 0 (uncalibrated) to 3 (fully calibrated).
+VALID=1 means a complete orientation frame arrived within 300 milliseconds.
+It does not mean calibrated or magnetically accurate. Angles hold their last
+values if communication fails, but VALID changes to 0 and LD2 turns off.
+ERR=000 means no last transaction error. 250=timeout, 251=unexpected reply,
+252=wrong chip ID, 253=wrong reply length, 254=UART error. Other values are
+the BNO055's EE response status. The controller retries and reinitializes
+after repeated failures without blocking the model's motor task.
+
+The blue LD2 LED now indicates fresh orientation frames, rather than latching
+on after one successful chip-ID response. Telemetry is sent at 10 Hz; sensor
+Euler/calibration transactions repeat approximately 15-20 times per second.
+
+FIRST TEST
+Leave motor power OFF. Wait a few seconds for the sensor to initialize and
+gently tilt/rotate the IMU; heading/roll/pitch should change. Mount the sensor
+away from motors, magnets, steel, and high-current wiring. Follow Adafruit's
+calibration procedure; check the CAL scores before trusting compass heading.
+Only after the stationary test works should you compare readings with the
+motor running. A changing magnetic field can corrupt heading even when the
+serial data and calibration flags look healthy.
+
+WIRING (unchanged)
+Adafruit BNO055 VIN and PS1 -> Nucleo 3V3 (shared power rail).
+BNO055 GND and PS0 -> ground.
+BNO055 SCL (UART RX) -> D1 / PG14 / USART6_TX / CN10 pin 14.
+BNO055 SDA (UART TX) -> D0 / PG9 / USART6_RX / CN10 pin 16.
+Pi ST-LINK virtual COM port -> USART3 on PD8/PD9, 115200 baud, 8N1.
+Motor PWM -> D6/PE9 and D5/PE11; enables -> D4/PF14 and D2/PF15.
+
+FILES
+Motor_IMU_Test.slx: new model, separate from the original Motor_Test model.
+hardware/motortest.ioc: separate configuration copy. Adds USART3 interrupt
+for readable Pi telemetry and uses an absolute firmware repository path.
+bno055_controller.m: nonblocking initialization and UART response parser.
+bno055_text.m: fixed-length readable serial telemetry formatter.
+test_motor_imu.m: protocol emulator tests without hardware access.
+build_motor_imu.m: reconstructs and compiles the model, BUILD ONLY.
+open_motor_imu.m: opens model for the user's normal deployment workflow.
+
+Rebuilding with build_motor_imu never flashes the board. Rebuilding requires
+the original Motor_Test.slx at its existing location and the installed tools.
+Neither the original Motor_Test.slx nor the original motortest.ioc is edited.
+
+REFERENCES
+Bosch BNO055 datasheet: UART protocol, mode transitions, Euler register order,
+1/16-degree units, and calibration status fields:
+https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bno055-ds000.pdf
+Adafruit BNO055 calibration guide:
+https://learn.adafruit.com/adafruit-bno055-absolute-orientation-sensor/device-calibration

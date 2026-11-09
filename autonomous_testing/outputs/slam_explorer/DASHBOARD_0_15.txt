@@ -1,0 +1,32 @@
+SLAM EXPLORER 0.15 - DASHBOARD LAYOUT
+
+Controls and status at the top. Front camera, rear camera, and a new raw
+LiDAR scan panel follow. Motor/sensor readings are above the map. Raw JSON,
+board telemetry and shunt configuration notes are collapsed at the bottom.
+Rear mirror control and the old rear-video sentence have been removed.
+
+The LiDAR panel displays current /scan points transformed into base_link
+using the existing calibrated TF mount, with forward up. Stale scans and
+scans lacking a valid transform are not displayed as live. Rings are 1 m;
+display extends 4 m from the vehicle in each direction. This is distinct
+from the SLAM map / planned route below the readings.
+
+CAMERA CAPABILITY - CURRENT IMPLEMENTATION
+Front/rear images currently provide operator video. Optional calibrated
+camera ground-motion odometry remains disabled pending calibration, as
+previously requested. Neither camera currently produces obstacle depth,
+free-space classification, or a camera-based clearance measurement.
+Automatic obstacle checks currently use LiDAR. Removing text from the UI
+does not add camera clearance detection. Camera odometry/EKF input alone
+also does not establish obstacle clearance. Vision-assisted clearance is
+additional perception/calibration work, not implemented by this layout update.
+
+VALIDATION
+100 local Python tests passed. Dashboard JavaScript checks passed, including
+camera disconnect/recovery, authenticated Reset, Start gating, feed layout,
+mirror absence, LiDAR plotting and removal of stale returns. No powered
+robot test is part of this UI update. Live Pi verification is reported in chat.
+
+Install with Update-Autonomy.ps1. Existing calibration is preserved.
+Restart navigation once and open its new SLAM-EXPLORER-0.15 token link to
+load this dashboard version. Subsequent failures use Reset navigation.

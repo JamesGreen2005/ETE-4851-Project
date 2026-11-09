@@ -1,0 +1,1 @@
+ARM compilation/linking passed. Both IRQ vectors verified in binary. FW=7 and diagnostic format verified. Existing dashboard parser accepts extra fields. Telemetry insertion and 254-byte length within 256-byte UART TX buffer verified. Not physically tested or flashed.

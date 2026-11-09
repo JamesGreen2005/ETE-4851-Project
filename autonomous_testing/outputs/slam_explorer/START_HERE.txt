@@ -1,0 +1,201 @@
+SLAM EXPLORER 0.17 - CURRENT RELEASE
+See FOOTPRINT_FIX.txt.
+
+SLAM EXPLORER 0.16 - CURRENT RELEASE
+Read REVERSE_LIMIT_0_16.txt.
+
+SLAM EXPLORER 0.15 - CURRENT RELEASE
+Read DASHBOARD_0_15.txt for layout/capabilities, RESET_UPDATE.txt for recovery.
+
+SLAM EXPLORER 0.14 - CURRENT RELEASE
+Read RESET_UPDATE.txt for dashboard recovery and launch instructions.
+
+SLAM EXPLORER 0.13 - CURRENT RELEASE
+Read AUTONOMY_0_13.txt first. Notes below are historical and do not describe 0.13.
+
+SLAM EXPLORER 0.11 - CURRENT RELEASE
+See CONTINUOUS_EXPLORATION_UPDATE.txt for the latest behavior and validation.
+
+SLAM EXPLORER 0.9 - CURRENT UPDATE
+See DASHBOARD_UPDATE.txt for current changes and validation.
+Use REAR_CAMERA_SETUP.txt for installation commands.
+The release notes below describe earlier versions.
+
+SLAM EXPLORER 0.4 - FRONT + REAR CAMERA UPDATE
+
+Use REAR_CAMERA_SETUP.txt for the current update/install/preview commands.
+The following 0.1 notes are historical; the old "not installed on Pi" statement
+describes that original release, not the later Pi work in PI_VALIDATION.txt.
+Camera update 0.4 has local validation only until installed and checked on Pi.
+
+This is a separate ROS 2 package and web dashboard, not another patch to the
+reactive obstacle page. It does not need another Nucleo firmware flash.
+Uses your current Vehicle_Drive FW>=2, including the FW=7 diagnostic layout.
+No code was installed or run on the Pi: SSH batch authentication failed.
+Local tests use ROS stand-ins for drive logic; ROS nodes/plugins were not run.
+
+WHAT IS IMPLEMENTED
+- SLAM Toolbox asynchronous 2D mapping with scan matching and loop closure.
+- robot_localization EKF: selected encoder longitudinal speed + zero lateral
+  velocity for symmetric steering + BNO055 yaw. E2 is not required in default
+  single-E1 mode. A zero/frozen E1 while driving stops the robot.
+- map -> odom -> base_link -> laser/imu TF chain with one publisher per link.
+- Nav2 Smac Hybrid-A* with measured counter-steer turning radius; forward-only
+  Dubins paths, no spin-in-place or automatic blind-reverse recovery.
+- Regulated Pure Pursuit path tracking, bounded speed PI output (0..50% duty).
+  Configured minimum tracking/approach speed equals measured stable speed:
+  this chassis reportedly needs about 50% duty to move. It is not assumed
+  capable of precise creeping. Validate stopping distance and controller tuning.
+- Path commitment: plan once, follow that path; only replan after tracking
+  failure. Two bounded retries with a wait, then return failure to explorer.
+- Automatic frontier exploration on reachable mapped free space. Goals stand
+  back from unknown cells. Scoring balances frontier size and travel cost.
+- Adaptive failure memory: failed areas get increasing retry cooldowns during
+  this session. Active goals are not replaced on every scan/map update.
+  This is map-based adaptation, not a neural network or permanent training.
+- Local map/path/pose and camera dashboard, START/STOP, token link, port 8005.
+- Short command/serial/scan/IMU/EKF/operator timeouts. Browser heartbeat loss
+  stops drive and cancels exploration. Stops/faults need an explicit restart.
+- Straight motion can leave rear-only obstacles behind the rear plane;
+  turning keeps the full conservative envelope.
+
+IMPORTANT LIMITS
+Sensor fusion does not create missing encoder pulses. Single-E1 odometry is
+an approximation: slip, tire geometry, encoder gearing and steering errors
+still matter. IMU heading must have the right yaw sign/orientation; magnetic
+interference can damage localization. No MCU source timestamp or CRC exists
+on the text telemetry. Arrival time is used; this is not hardware time sync.
+No camera depth/visual odometry is implemented. Camera is operator video.
+The 12-inch-high LiDAR cannot see all low objects, drop-offs or overhangs.
+The clearance/velocity loop and ROS integration are not physically validated.
+CPU load/latency, ROS Lyrical plugin compatibility and closed-loop speed tuning
+must be verified on the Pi before floor exploration.
+
+1. COPY FROM WINDOWS POWERSHELL
+scp "C:\Users\jpgre\Documents\Codex\2026-11-04\send-me-the-command-where-it\outputs\slam_explorer_pi.zip" swerve@192.168.1.160:~/
+
+2. INSTALL ON PI
+Stop old autonomy/dashboard/sensor_hub serial owners with Ctrl+C.
+Keep the current camera and LiDAR drivers; do not launch duplicates.
+mkdir -p ~/slam_explorer
+python3 -m zipfile -e ~/slam_explorer_pi.zip ~/slam_explorer
+bash ~/slam_explorer/install_pi.sh
+source /opt/ros/lyrical/setup.bash
+source ~/nav_ws/install/setup.bash
+
+Installer needs Pi internet/sudo for ROS dependencies. It does not flash the
+Nucleo, change existing calibration files, or start robot movement. Dependencies
+are system ROS packages, not pip wheels. The package installs in ~/nav_ws.
+
+3. MEASURE CALIBRATION (REQUIRED, NO INVENTED VALUES)
+Edit ~/robot_nav_calibration.json. Template keeps verified=false and unknown
+dimensions/scales null. Launch refuses unmeasured calibration even in passive
+mode because guessed odometry would produce a misleading map.
+
+You can measure encoder counts per metre directly without knowing gear ratio
+or being able to rotate the locked shafts by hand:
+- Stop all serial owners, place start/end marks on a clear straight floor.
+- Check both configured forward commands physically move forward with wheels lifted.
+- For a supervised powered test in clear space, run:
+  cd ~/slam_explorer
+  python3 measure_encoder.py --run-drive-test --seconds 3
+- This explicitly runs both motors at -50% for 3 s, sends STOP, waits 2 s for
+  coast, saves encoder_measurement.csv, then asks actual measured travel in m.
+- It prints counts_per_meter and encoder_sign for each moving encoder.
+- This output is an average scale, not a verified steady speed/stopping test.
+  Include all coast distance; repeat over a known distance to check consistency.
+
+Required values:
+counts_per_meter: measured as above, or supply wheel_diameter_m and
+  counts_per_wheel_rev (after gearing, quadrature x4).
+encoder_index=1 by default; encoder_sign makes physical forward speed positive.
+wheelbase_m: measured axle-center distance.
+max_steer_rad: measured physical front angle at servo_travel_us. Rear must
+  match the same magnitude in the opposite direction. Degrees*pi/180=radians.
+servo_travel_us, front/rear centers/signs: measured steering calibration.
+measured_speed_mps: measured steady forward speed at measured_duty_pct.
+stopping_distance_m: conservative measured distance after zero command.
+laser_frame: must exactly equal /scan header.frame_id (check ros2 topic echo).
+laser_yaw_rad: initial pi radians matches your earlier 180-degree mount correction;
+  VERIFY a known object ahead appears ahead in the map.
+imu_yaw_sign: default -1 assumes BNO055 clockwise heading. Rotate the chassis
+  left and confirm filtered yaw increases; correct sign before driving.
+motor1_sign=motor2_sign=-1 now maps forward to negative PWM after the reverse test; verify physically.
+Set verified=true only after these measurements and physical direction checks.
+
+4. DEPENDENCY/CALIBRATION CHECK (NO SERIAL OPEN, NO MOVEMENT)
+source /opt/ros/lyrical/setup.bash
+source ~/nav_ws/install/setup.bash
+python3 ~/slam_explorer/preflight.py --calibration ~/robot_nav_calibration.json
+
+5. CAMERA AND LIDAR (SEPARATE TERMINALS, ONLY IF NOT ALREADY RUNNING)
+LiDAR:
+source /opt/ros/lyrical/setup.bash
+source ~/lidar_ws/install/setup.bash
+ros2 launch sllidar_ros2 sllidar_c1_launch.py serial_port:=/dev/ttyUSB0 serial_baudrate:=460800
+
+Camera:
+source /opt/ros/lyrical/setup.bash
+source ~/camera_ws/install/setup.bash
+ros2 run usb_cam usb_cam_node_exe --ros-args -r __ns:=/camera -p video_device:=/dev/video0 -p image_width:=640 -p image_height:=480 -p framerate:=15.0 -p pixel_format:=yuyv
+
+6. STATIONARY ROS LAUNCH FIRST
+Stop all programs owning /dev/ttyACM0. This bridge must be the sole owner.
+source /opt/ros/lyrical/setup.bash
+source ~/nav_ws/install/setup.bash
+ros2 launch robot_explorer explore.launch.py calibration:=$HOME/robot_nav_calibration.json allow_motion:=false
+
+Windows tunnel:
+ssh -L 8005:127.0.0.1:8005 swerve@192.168.1.160
+Open the complete new http://127.0.0.1:8005/#token=... printed by launch.
+START cannot arm while allow_motion=false. No powered mapping is possible
+in this mode; check topic flow, static scan alignment, TF and EKF first.
+
+In another sourced Pi terminal:
+ros2 topic hz /scan
+ros2 topic hz /wheel/odometry
+ros2 topic hz /imu/data
+ros2 topic hz /odometry/filtered
+ros2 run tf2_ros tf2_echo map base_link
+ros2 lifecycle get /planner_server
+ros2 lifecycle get /controller_server
+ros2 lifecycle get /bt_navigator
+
+Expect scan about 10 Hz, valid IMU/encoder messages, filtered odom about20 Hz,
+connected TF and active Nav2 lifecycle nodes. Inspect launch errors; don't
+work around missing measurements or TF by enabling motion.
+
+7. CONTROLLED LIVE TEST AFTER ROS CHECKS
+Ctrl+C stops passive launch. First verify with wheels supported, then a small
+supervised clear area. Start:
+source /opt/ros/lyrical/setup.bash
+source ~/nav_ws/install/setup.bash
+ros2 launch robot_explorer explore.launch.py calibration:=$HOME/robot_nav_calibration.json allow_motion:=true
+Open the new token link, inspect health, click Start exploration. Startup
+does not itself arm or move. Goals are picked automatically from the map.
+Keep dashboard connected. STOP or closing it stops the drive. No frontiers
+may mean mapping complete, insufficient visible free space, or a boxed-in
+car-like chassis that cannot reach a new region without manual repositioning.
+
+8. SAVE MAP (FROM A SOURCED PI TERMINAL)
+mkdir -p ~/robot_maps
+ros2 run nav2_map_server map_saver_cli -f ~/robot_maps/site1
+This saves occupancy YAML/image. Pose-graph persistence/localization restart
+requires SLAM Toolbox serialization as a separate workflow; this initial
+launch starts a new mapping session and failure memory resets per process.
+It does not claim to reload a prior map or learn indefinitely across reboots.
+
+VALIDATION
+23 local unit tests passed: counter wrap, real FW7 telemetry parsing,
+calibration gates, steering feasibility, frontier reachability/selection,
+failure cooldown, no periodic replanning/spin, velocity/obstacle/stale-data
+stops, passive launch rejection and duty bounds. Drive tests use ROS stand-ins.
+Python syntax, XML, JSON and dashboard JavaScript syntax checked locally.
+No ROS 2 launch, SLAM accuracy, navigation trajectory or braking validation
+was possible on Windows. Actual Pi SSH refused batch authentication.
+
+PRIMARY REFERENCES
+https://github.com/SteveMacenski/slam_toolbox/blob/ros2/launch/online_async_launch.py
+https://docs.nav2.org/rolling/configuration_and_development/configuration_guide/controller_plugins/configuring_regulated_pp/
+https://docs.nav2.org/rolling/configuration_and_development/configuration_guide/planners_plugins/smac/smac_hybrid/configuring_smac_hybrid/
+https://docs.ros.org/en/rolling/p/robot_localization/user_docs/configuring_robot_localization.html

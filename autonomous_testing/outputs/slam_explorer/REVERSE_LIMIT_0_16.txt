@@ -1,0 +1,22 @@
+SLAM EXPLORER 0.16 - REVERSE LIMIT FIX
+Reverse watchdog counts time with reverse motor output applied, not wall time
+while paused/blocked. MCU output TTL bounds accounted time after process stalls.
+The 16 s / 2.15 m bridge bounds remain. At a bound the bridge publishes zero
+output, stays armed and latches reverse off until authorization is withdrawn
+at a commanded/measured standstill. Explorer cancels the old reverse navigation
+route, settles at zero, and replans normally. Recovery's 15 s budget uses the
+same applied-output clock. Sensor faults and Stop still disarm normally.
+Dashboard displays active output time, encoder distance and last limit cause.
+Encoder distance can overestimate ground travel if wheels slip on grass.
+
+USER-REQUESTED COVERAGE: exactly one of twenty known rear sectors suffices
+for straight AND turning reverse. Zero known sectors still blocks reverse.
+Missing sectors remain unknown; available observed obstacles still stop motion.
+This setting permits motion with most of the rear unobserved. Camera clearance
+is not implemented and does not cover those missing measurements.
+
+103 unit tests passed locally plus dashboard JavaScript checks. Includes paused
+clock, timeout/distance zero-output latch without disarm, stopped-only budget
+reset, 0/1/9/20 sector thresholds, obstacle stops and planned reverse cancel/replan.
+No powered test is performed during deployment. Existing calibration preserved.
+After installation relaunch once; open the new SLAM-EXPLORER-0.16 token link.

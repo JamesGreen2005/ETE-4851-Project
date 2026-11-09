@@ -1,0 +1,28 @@
+SLAM EXPLORER 0.6 - REVERSE COVERAGE DIAGNOSTICS AND CORRIDOR FIX
+
+The previous coverage test required finite returns in every 5-degree sector
+across the entire rear half-plane, even for a straight reverse. Straight
+reverse now checks the angular corridor beyond the rear bumper using chassis
+radius, clearance margin, and calibrated laser x/y position. Turning retains
+the rear-half-plane requirement. All measured obstacle points still enter
+the existing swept-path obstacle check, including points outside the coverage
+corridor. Invalid or missing readings inside the required corridor remain
+unknown; they are not treated as free space.
+
+Missing data now reports Reverse unavailable rather than Reverse blocked,
+with known/required sector counts and missing sector angles in base_link.
+The dashboard includes rear_coverage diagnostics. Camera video is unchanged.
+
+52 Python tests and dashboard JavaScript checks passed locally. Regression
+checks verify that lateral gaps outside the straight corridor do not block,
+rear corridor gaps still do block, invalid scans are rejected, mounting yaw
+is applied, and existing obstacle/reverse limits still pass. No actual scan
+from the current failing scene was captured; whether this specific stop is
+caused by an irrelevant side gap remains unverified. This is not proof of
+physical clearance. Version 0.6 needs upload/build and a stationary check.
+
+Stop Terminal 3, run Update-Cameras.ps1 on Windows, then source ROS/camera_ws/
+nav_ws in Pi Terminal 3 and use the existing explore.launch.py command.
+The separate camera and LiDAR terminals can stay running. Open the new
+SLAM-EXPLORER-0.6 token link. Test stationary with allow_motion:=false first;
+the existing allow_motion:=true launch starts disarmed until Start is clicked.

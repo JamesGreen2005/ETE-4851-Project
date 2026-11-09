@@ -1,0 +1,32 @@
+SLAM EXPLORER 0.8 - LONGER REVERSE RECOVERY AND TARGET COMPLETION FIX
+
+The screenshot reports Recorded reverse target is not behind robot while rear
+coverage is sufficient. The follower previously raised a fault if the selected
+point was no longer behind, including after passing a short route endpoint.
+It now skips non-behind points and, when none remain, publishes zero velocity,
+ends recovery and returns to planning. It still stops for route deviation.
+This fixes that error path; the screenshot alone does not establish whether
+the actual cause was endpoint overshoot or a heading/route disagreement.
+
+Recorded-route recovery can use up to 2 m of actual recent breadcrumbs instead
+of 0.5 m. It cannot recover farther along breadcrumbs than it has recorded.
+When no usable recorded path exists, straight backup targets 1 m rather than
+0.25 m. Recovery has a 15 s timeout instead of 4.5 s. Independent bridge limits
+are 16 s and 2.15 m, replacing 5 s and 0.6 m. The extra bridge allowance permits
+normal terminal stopping without preempting the follower at its own limit.
+These are recovery maneuvers, not full bidirectional Nav2 route planning.
+
+The selected 50% coverage policy, detected-obstacle braking, sensor freshness,
+operator heartbeat, odometry deviation, reverse authorization, and encoder
+checks remain active. A recovery does not grant unlimited repeated backing;
+the existing forward-progress budget still applies.
+
+60 local Python tests passed. New tests exercise 2 m breadcrumb extraction,
+endpoint overshoot, no-behind-target completion, a simulated full straight
+backup lasting more than 5 s, extended bridge operation, and the new timeout.
+No Pi deployment or physical validation was performed by this chat.
+
+Stop Terminal 3; leave the camera and LiDAR terminals running. Run the existing
+Update-Cameras.ps1 on Windows, then source ROS, camera_ws and nav_ws in Pi
+Terminal 3 and start explore.launch.py with allow_motion:=true and both camera
+start flags false. Open the NEW SLAM-EXPLORER-0.8 token link and click Start.

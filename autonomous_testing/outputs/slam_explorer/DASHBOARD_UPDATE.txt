@@ -1,0 +1,42 @@
+SLAM EXPLORER 0.9 - STOP DIAGNOSTICS, 20 SECTORS, LIVE MOTOR/SENSOR DISPLAY
+
+The supplied screenshot identifies Reverse deviated from recorded route,
+while rear coverage sufficient=true. This is a route tracking stop, not a
+coverage stop. The follower previously checked distance only to individual
+breadcrumbs. Adjacent permitted breadcrumbs can be 0.35 m apart, so a robot
+on the line midway between them could exceed the 0.15 m point-distance limit.
+Distance is now measured to the continuous segments. True route deviation
+above 0.15 m still stops and reports the measured error. This fixes a possible
+false-stop case; no recorded live odometry proves it caused this specific stop.
+The last exploration stop reason and pose are retained in status, and the
+reason is displayed prominently rather than being hidden by Stop requested.
+
+Exactly 20 sectors divide the SAME angular rear corridor. This does not
+narrow the corridor or discard obstacle readings. The requested 50% rule
+remains: 10/20 sectors sufficient, 9/20 insufficient. Invalid rays do not
+become clear space. Missing_degrees now contains sector start angles with
+sector_width_deg describing their angular width. The older fixed 5-degree
+interpretation no longer applies. Turning still uses the rear half-plane.
+
+Live dashboard readings: per-motor current A, bus voltage V, power W, raw
+16-bit encoder count, wrapped counts/s, reported PWM, and current sensor
+status. IMU heading/roll/pitch/validity/calibration, LiDAR/IMU/EKF/camera ages,
+selected odometry encoder, vehicle speed, and rear sector counts are visible.
+No RPM is invented without shaft counts/revolution calibration. Current uses
+the existing project's INA219 SH/ST/BV protocol and default 0.1-ohm shunts.
+Set ina_shunt_ohms in robot_nav_calibration.json if the actual shunts differ.
+Missing/offline/range-exceeded/current fields remain unavailable. Old values
+are hidden when serial or drive-status receipt becomes stale. No second
+serial owner or sensor process is started by the dashboard.
+
+65 Python tests plus dashboard script checks passed locally. New coverage:
+continuous path vs sparse breadcrumb distances, real deviation stop, encoder
+rollover and both rates, INA219 unit conversions, stale/missing readings,
+custom shunt validation, exactly 20 straight/turning bins, and 10/20 vs 9/20.
+Dashboard checks cover visible measurements, stop reason, and stale clearing.
+No Pi deployment or physical validation of version 0.9 occurred in this chat.
+
+Stop Terminal 3; leave camera and LiDAR terminals running. Run Update-Cameras.ps1
+on Windows. In Pi Terminal 3, source ROS, camera_ws and nav_ws then use the
+existing explore.launch.py command. Open the new SLAM-EXPLORER-0.9 token link.
+The launch starts disarmed; Start exploration explicitly enables movement.
