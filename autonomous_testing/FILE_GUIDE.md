@@ -133,3 +133,4 @@ Paths are relative to `autonomous_testing/`. Every bundled file is listed below.
 | `VALIDATION.md` | Version-by-version validation record, including the unresolved final 0.17 route check. |
 | `FILE_GUIDE.md` | This per-file explanation index. |
 | `MANIFEST_SHA256.txt` | SHA256 checksums for the bundle files, excluding the manifest itself. |
+| `.gitattributes` | Preserves checked-in bytes across platforms so manifest hashes remain stable. |
